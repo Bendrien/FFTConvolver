@@ -53,50 +53,77 @@ namespace fftconvolver
 class FFTConvolver
 {  
 public:
-  FFTConvolver();  
-  virtual ~FFTConvolver();
-  
-  /**
-  * @brief Initializes the convolver
-  * @param blockSize Block size internally used by the convolver (partition size)
-  * @param ir The impulse response
-  * @param irLen Length of the impulse response
-  * @return true: Success - false: Failed
-  */
-  bool init(size_t blockSize, const Sample* ir, size_t irLen);
+    FFTConvolver();
+    virtual ~FFTConvolver();
 
-  /**
-  * @brief Convolves the the given input samples and immediately outputs the result
-  * @param input The input samples
-  * @param output The convolution result
-  * @param len Number of input/output samples
-  */
-  void process(const Sample* input, Sample* output, size_t len);
+    /**
+    * @brief Initializes the convolver
+    * @param blockSize Block size internally used by the convolver (partition size)
+    * @param ir The impulse response
+    * @param irLen Length of the impulse response
+    * @return true: Success - false: Failed
+    */
+    bool init(size_t blockSize, const Sample* ir, size_t irLen);
 
-  /**
-  * @brief Resets the convolver and discards the set impulse response
-  */
-  void reset();
+    /**
+    * @brief Convolves the the given input samples and immediately outputs the result
+    * @param input The input samples
+    * @param output The convolution result
+    * @param len Number of input/output samples
+    */
+    void process(const Sample* input, Sample* output, size_t len);
+
+    /**
+    * @brief Resets the convolver and discards the set impulse response
+    */
+    void reset();
   
 private:
-  size_t _blockSize;
-  size_t _segSize;
-  size_t _segCount;
-  size_t _fftComplexSize;
-  std::vector<SplitComplex*> _segments;
-  std::vector<SplitComplex*> _segmentsIR;
-  SampleBuffer _fftBuffer;
-  audiofft::AudioFFT _fft;
-  SplitComplex _preMultiplied;
-  SplitComplex _conv;
-  SampleBuffer _overlap;
-  size_t _current;
-  SampleBuffer _inputBuffer;
-  size_t _inputBufferFill;
+    /// Block size internally used by the convolver (partition size, is a power of 2)
+    size_t _blockSize;
 
-  // Prevent uncontrolled usage
-  FFTConvolver(const FFTConvolver&);
-  FFTConvolver& operator=(const FFTConvolver&);
+    /// Size of one segment in samples (block size times 2)
+    size_t _segSize;
+
+    /// Count of all segments (fitting inside the impulse response)
+    size_t _segCount;
+
+    /// Size of real/imagenary part of the segments in the frequency domain
+    size_t _fftComplexSize;
+
+    /// Vector of all buffered input segments in the frequency domain
+    std::vector<SplitComplex*> _segments;
+
+    /// Vector of all impulse response segments in the frequency domain
+    std::vector<SplitComplex*> _segmentsIR;
+
+    /// Sample buffer, holding the converted input into the frequency domain (sized by segment size)
+    SampleBuffer _fftBuffer;
+
+    /// AudioFFT handle
+    audiofft::AudioFFT _fft;
+
+    /// Buffer for convolution proposes (sized by segment size)
+    SplitComplex _preMultiplied;
+
+    /// Buffer for convolution proposes (sized by segment size)
+    SplitComplex _conv;
+
+    /// Sample buffer, holding the overlap (sized by buffer size)
+    SampleBuffer _overlap;
+
+    /// Index of the current segment
+    size_t _current;
+
+    /// Sample buffer, holding the converted input into the frequency domain (sized by buffer size)
+    SampleBuffer _inputBuffer;
+
+    /// Position of the processed input in samples
+    size_t _inputBufferFill;
+
+    // Prevent uncontrolled usage
+    FFTConvolver(const FFTConvolver&);
+    FFTConvolver& operator=(const FFTConvolver&);
 };
   
 } // End of namespace fftconvolver
