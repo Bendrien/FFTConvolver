@@ -78,48 +78,48 @@ public:
     */
     void reset();
   
-private:
-    /// Block size internally used by the convolver (partition size, is a power of 2)
-    size_t _blockSize;
+    private:
+        /// Block size internally used by the convolver (partition size, is a power of 2)
+        size_t _blockSize;
 
-    /// Size of one segment in samples (block size times 2)
-    size_t _segSize;
+        /// Size of one segment in samples (block size times 2)
+        size_t _segSize;
 
-    /// Count of all segments (fitting inside the impulse response)
-    size_t _segCount;
+        /// Count of all segments (fitting inside the impulse response)
+        size_t _segCount;
 
-    /// Size of real/imagenary part of the segments in the frequency domain
-    size_t _fftComplexSize;
+        /// Size of real/imagenary part of the segments in the frequency domain
+        size_t _fftComplexSize;
 
-    /// Vector of all buffered input segments in the frequency domain
-    std::vector<SplitComplex*> _segments;
+        /// Vector of all buffered input segments in the frequency domain
+        std::vector<SplitComplex*> _segments;
 
-    /// Vector of all impulse response segments in the frequency domain
-    std::vector<SplitComplex*> _segmentsIR;
+        /// Vector of all impulse response segments in the frequency domain
+        std::vector<SplitComplex*> _segmentsIR;
 
-    /// Sample buffer, holding the converted input into the frequency domain (sized by segment size)
-    SampleBuffer _fftBuffer;
+        /// Sample buffer, holding the converted input into the frequency domain (sized by segment size)
+        SampleBuffer _fftBuffer;
 
-    /// AudioFFT handle
-    audiofft::AudioFFT _fft;
+        /// AudioFFT handle
+        audiofft::AudioFFT _fft;
 
-    /// Buffer for convolution proposes (sized by segment size)
-    SplitComplex _preMultiplied;
+        /// Buffer for convolution proposes (sized by segment size)
+        SplitComplex _preMultiplied;
 
-    /// Buffer for convolution proposes (sized by segment size)
-    SplitComplex _conv;
+        /// Buffer for convolution proposes (sized by segment size)
+        SplitComplex _conv;
 
-    /// Sample buffer, holding the overlap (sized by buffer size)
-    SampleBuffer _overlap;
+        /// Sample buffer, holding the overlap (sized by buffer size)
+        SampleBuffer _overlap;
 
-    /// Index of the current segment
-    size_t _current;
+        /// Index of the current segment
+        size_t _current;
 
-    /// Sample buffer, holding the converted input into the frequency domain (sized by buffer size)
-    SampleBuffer _inputBuffer;
+        /// Sample buffer, holding the converted input into the frequency domain (sized by buffer size)
+        SampleBuffer _inputBuffer;
 
-    /// Position of the processed input in samples
-    size_t _inputBufferFill;
+        /// Position of the processed input in samples
+        size_t _inputBufferFill;
 
     // Prevent uncontrolled usage
     FFTConvolver(const FFTConvolver&);
