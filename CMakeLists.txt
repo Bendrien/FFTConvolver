@@ -12,6 +12,6 @@ set(SOURCE_FILES
         TwoStageFFTConvolver.cpp
         TwoStageFFTConvolver.h
         Utilities.cpp
-        Utilities.h FFTConvolverBuffer.cpp FFTConvolverBuffer.h)
+        Utilities.h StereoFFTConvolver.cpp StereoFFTConvolver.h)
 
 add_executable(FFTConvolver ${SOURCE_FILES})

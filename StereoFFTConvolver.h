@@ -12,10 +12,10 @@
 
 namespace fftconvolver {
 
-class FFTConvolverBuffer {
+class StereoFFTConvolver {
 public:
-    FFTConvolverBuffer();
-    virtual ~FFTConvolverBuffer();
+    StereoFFTConvolver();
+    virtual ~StereoFFTConvolver();
 
     /**
     * @brief Initializes the convolver
@@ -24,15 +24,15 @@ public:
     * @param irLen Length of the impulse response
     * @return true: Success - false: Failed
     */
-    bool init(size_t blockSize, const Sample* ir, size_t irLen);
+    bool init(size_t blockSize, const Sample* irL, const Sample* irR, size_t irLen);
 
     /**
     * @brief Convolves the the given input samples and immediately outputs the result
     * @param input The input samples
-    * @param output The convolution result
+    * @param outputL The convolution result
     * @param len Number of input/output samples
     */
-    void process(const Sample* input, Sample* output, size_t len);
+    void process(const Sample* input, Sample* outputL, Sample* outputR, size_t len);
 
     /**
     * @brief Resets the convolver and discards the set impulse response
@@ -56,35 +56,39 @@ private:
     std::vector<SplitComplex*> _segments;
 
     /// Vector of all impulse response segments in the frequency domain
-    std::vector<SplitComplex*> _segmentsIR;
+    std::vector<SplitComplex*> _segmentsLeftIR;
+    std::vector<SplitComplex*> _segmentsRightIR;
 
-    /// Sample buffer, holding the converted input into the frequency domain (sized by segment size)
+    /// Sample buffer, holding samples of the frequency domain (sized by segment size)
     SampleBuffer _fftBuffer;
 
     /// AudioFFT handle
     audiofft::AudioFFT _fft;
 
     /// Buffer for convolution proposes (sized by segment size)
-    SplitComplex _preMultiplied;
+    SplitComplex _preMultipliedL;
+    SplitComplex _preMultipliedR;
 
     /// Buffer for convolution proposes (sized by segment size)
-    SplitComplex _conv;
+    SplitComplex _convL;
+    SplitComplex _convR;
 
     /// Sample buffer, holding the overlap (sized by buffer size)
-    SampleBuffer _overlap;
+    SampleBuffer _overlapL;
+    SampleBuffer _overlapR;
 
     /// Index of the current segment
     size_t _current;
 
-    /// Sample buffer, holding the converted input into the frequency domain (sized by buffer size)
+    /// Sample buffer, holding samples of the time domain (sized by block size)
     SampleBuffer _inputBuffer;
 
     /// Position of the processed input in samples
     size_t _inputBufferFill;
 
     // Prevent uncontrolled usage
-    FFTConvolverBuffer(const FFTConvolverBuffer&);
-    FFTConvolverBuffer& operator=(const FFTConvolverBuffer&);
+    StereoFFTConvolver(const StereoFFTConvolver&);
+    StereoFFTConvolver& operator=(const StereoFFTConvolver&);
 };
 
 } // End of namespace fftconvolver
