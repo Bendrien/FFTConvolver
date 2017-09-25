@@ -36,41 +36,51 @@ namespace fftconvolver
         reset();
     }
 
+    void StereoFFTConvolver::reset() {
+        reset(true);
+    }
 
-    void StereoFFTConvolver::reset()
+    void StereoFFTConvolver::reset(bool inputReset)
     {
-        for (size_t i=0; i<_segCount; ++i)
-        {
-            delete _segments[i];
-            delete _segmentsLeftIR[i];
-            delete _segmentsRightIR[i];
+        if (inputReset) {
+            for (size_t i=0; i<_segCount; ++i)
+            {
+                delete _segments[i];
+                delete _segmentsLeftIR[i];
+                delete _segmentsRightIR[i];
+            }
+
+            _blockSize = 0;
+            _segSize = 0;
+            _segCount = 0;
+            _fftComplexSize = 0;
+            _segments.clear();
+            _fftBuffer.clear();
+            _fft.init(0);
+            _overlapR.clear();
+            _overlapL.clear();
+            _current = 0;
+            _inputBuffer.clear();
+        } else {
+            for (size_t i=0; i<_segCount; ++i)
+            {
+                delete _segmentsLeftIR[i];
+                delete _segmentsRightIR[i];
+            }
         }
 
-        _blockSize = 0;
-        _segSize = 0;
-        _segCount = 0;
-        _fftComplexSize = 0;
-        _segments.clear();
         _segmentsLeftIR.clear();
         _segmentsRightIR.clear();
-        _fftBuffer.clear();
-        _fft.init(0);
         _preMultipliedL.clear();
         _preMultipliedR.clear();
         _convL.clear();
         _convR.clear();
-        _overlapL.clear();
-        _overlapR.clear();
-        _current = 0;
-        _inputBuffer.clear();
         _inputBufferFill = 0;
     }
 
 
     bool StereoFFTConvolver::init(size_t blockSize, const Sample* irL, const Sample* irR, size_t irLen)
     {
-        reset();
-
         if (blockSize == 0)
         {
             return false;
@@ -78,22 +88,36 @@ namespace fftconvolver
 
         if (irLen == 0)
         {
+            reset();
             return true;
         }
 
-        _blockSize = NextPowerOf2(blockSize);
-        _segSize = 2 * _blockSize;
-        _segCount = static_cast<size_t>(::ceil(static_cast<float>(irLen) / static_cast<float>(_blockSize)));
-        _fftComplexSize = audiofft::AudioFFT::ComplexSize(_segSize);
+        blockSize = NextPowerOf2(blockSize);
+        const bool inputReset = _blockSize != blockSize;
+        reset(inputReset);
 
-        // FFT
-        _fft.init(_segSize);
-        _fftBuffer.resize(_segSize);
+        if (inputReset) {
+            _blockSize = blockSize;
+            _segSize = 2 * _blockSize;
+            _segCount = static_cast<size_t>(::ceil(static_cast<float>(irLen) / static_cast<float>(_blockSize)));
+            _fftComplexSize = audiofft::AudioFFT::ComplexSize(_segSize);
 
-        // Prepare segments
-        for (size_t i=0; i<_segCount; ++i)
-        {
-            _segments.push_back(new SplitComplex(_fftComplexSize));
+            // FFT
+            _fft.init(_segSize);
+            _fftBuffer.resize(_segSize);
+
+            // Prepare segments
+            for (size_t i=0; i<_segCount; ++i)
+            {
+                _segments.push_back(new SplitComplex(_fftComplexSize));
+            }
+
+            // Prepare input buffer
+            _inputBuffer.resize(_blockSize);
+            _inputBufferFill = 0;
+
+            // Reset current position
+            _current = 0;
         }
 
         // Prepare IR's
@@ -122,13 +146,6 @@ namespace fftconvolver
         _convR.resize(_fftComplexSize);
         _overlapL.resize(_blockSize);
         _overlapR.resize(_blockSize);
-
-        // Prepare input buffer
-        _inputBuffer.resize(_blockSize);
-        _inputBufferFill = 0;
-
-        // Reset current position
-        _current = 0;
 
         return true;
     }
@@ -159,7 +176,7 @@ namespace fftconvolver
             {
                 _preMultipliedL.setZero();
                 _preMultipliedR.setZero();
-                // why i=1 ?
+                // ignore the first index, its used below
                 for (size_t i=1; i<_segCount; ++i)
                 {
                     const size_t indexIr = i;

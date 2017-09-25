@@ -40,6 +40,8 @@ public:
     void reset();
 
 private:
+    void reset(bool inputReset);
+
     /// Block size internally used by the convolver (partition size, is a power of 2)
     size_t _blockSize;
 
