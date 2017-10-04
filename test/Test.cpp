@@ -323,7 +323,7 @@ static bool TestBinauralConvolver(size_t inputSize,
             }
 
             convolver.process(&inBuf[0], &outL[processedOut], &outR[processedOut], processingOut);
-            //convolver.process(&outL[processedOut], &outR[processedOut], processingOut);
+            convolver.process(&outL[processedOut], &outR[processedOut], processingOut);
 
             processedOut += processingOut;
             processedIn += processingIn;

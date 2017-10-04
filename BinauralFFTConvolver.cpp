@@ -225,4 +225,32 @@ namespace fftconvolver
         }
     }
 
+    void BinauralFFTConvolver::process(Sample* outputL, Sample* outputR, size_t len)
+    {
+        if (_segCount == 0)
+        {
+            ::memset(outputL, 0, len * sizeof(Sample));
+            ::memset(outputR, 0, len * sizeof(Sample));
+            return;
+        }
+
+        size_t processed = 0;
+        while (processed < len)
+        {
+            const size_t processing = std::min(len-processed, _blockSize);
+
+            _convL.copyFrom(_preMultipliedL);
+            _convR.copyFrom(_preMultipliedR);
+            ComplexMultiplyAccumulate(_convL, *_segments[_current], *_segmentsLeftIR[0]);
+            ComplexMultiplyAccumulate(_convR, *_segments[_current], *_segmentsRightIR[0]);
+
+            // Left backward FFT
+            _fft.ifft(_fftBuffer.data(), _convL.re(), _convL.im());
+            // Right backward FFT
+            _fft.ifft(_fftBufferR.data(), _convR.re(), _convR.im());
+
+            processed += processing;
+        }
+    }
+
 } // End of namespace fftconvolver
