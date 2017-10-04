@@ -12,10 +12,10 @@
 
 namespace fftconvolver {
 
-class StereoFFTConvolver {
+class BinauralFFTConvolver {
 public:
-    StereoFFTConvolver();
-    virtual ~StereoFFTConvolver();
+    BinauralFFTConvolver();
+    virtual ~BinauralFFTConvolver();
 
     /**
     * @brief Initializes the convolver
@@ -33,6 +33,7 @@ public:
     * @param len Number of input/output samples
     */
     void process(const Sample* input, Sample* outputL, Sample* outputR, size_t len);
+    void process(Sample* outputL, Sample* outputR, size_t len);
 
     /**
     * @brief Resets the convolver and discards the set impulse response
@@ -63,6 +64,7 @@ private:
 
     /// Sample buffer, holding samples of the frequency domain (sized by segment size)
     SampleBuffer _fftBuffer;
+    SampleBuffer _fftBufferR;
 
     /// AudioFFT handle
     audiofft::AudioFFT _fft;
@@ -89,8 +91,8 @@ private:
     size_t _inputBufferFill;
 
     // Prevent uncontrolled usage
-    StereoFFTConvolver(const StereoFFTConvolver&);
-    StereoFFTConvolver& operator=(const StereoFFTConvolver&);
+    BinauralFFTConvolver(const BinauralFFTConvolver&);
+    BinauralFFTConvolver& operator=(const BinauralFFTConvolver&);
 };
 
 } // End of namespace fftconvolver
