@@ -119,14 +119,6 @@ namespace fftconvolver
             _inputBuffer.resize(_blockSize);
             _inputBufferFill = 0;
 
-            // Prepare convolution buffers
-            _preMultipliedL.resize(_fftComplexSize);
-            _preMultipliedR.resize(_fftComplexSize);
-            _convL.resize(_fftComplexSize);
-            _convR.resize(_fftComplexSize);
-            _overlapL.resize(_blockSize);
-            _overlapR.resize(_blockSize);
-
             // Reset current position
             _current = 0;
         }
@@ -149,6 +141,14 @@ namespace fftconvolver
             _fft.fft(_fftBufferR.data(), segmentR->re(), segmentR->im());
             _segmentsRightIR.push_back(segmentR);
         }
+
+        // Prepare convolution buffers
+        _preMultipliedL.resize(_fftComplexSize);
+        _preMultipliedR.resize(_fftComplexSize);
+        _convL.resize(_fftComplexSize);
+        _convR.resize(_fftComplexSize);
+        _overlapL.resize(_blockSize);
+        _overlapR.resize(_blockSize);
 
         return true;
     }
@@ -239,15 +239,35 @@ namespace fftconvolver
         {
             const size_t processing = std::min(len-processed, _blockSize);
 
+            // Complex multiplication
+            if (processed == 0)
+            {
+                _preMultipliedL.setZero();
+                _preMultipliedR.setZero();
+                // ignore the first index, its used below
+                for (size_t i=1; i<_segCount; ++i)
+                {
+                    const size_t indexIr = i;
+                    const size_t indexAudio = (_current + i) % _segCount;
+                    ComplexMultiplyAccumulate(_preMultipliedL, *_segmentsLeftIR[indexIr], *_segments[indexAudio]);
+                    ComplexMultiplyAccumulate(_preMultipliedR, *_segmentsRightIR[indexIr], *_segments[indexAudio]);
+                }
+            }
             _convL.copyFrom(_preMultipliedL);
             _convR.copyFrom(_preMultipliedR);
-            ComplexMultiplyAccumulate(_convL, *_segments[_current], *_segmentsLeftIR[0]);
-            ComplexMultiplyAccumulate(_convR, *_segments[_current], *_segmentsRightIR[0]);
+            ComplexMultiplyAccumulate(_convL, *_segmentsLeftIR[0], *_segments[_current]);
+            ComplexMultiplyAccumulate(_convR, *_segmentsRightIR[0], *_segments[_current]);
+
 
             // Left backward FFT
             _fft.ifft(_fftBuffer.data(), _convL.re(), _convL.im());
+            // Left add overlap
+            Sum(outputL+processed, _fftBuffer.data()+processed, _overlapL.data()+processed, processing);
+
             // Right backward FFT
             _fft.ifft(_fftBufferR.data(), _convR.re(), _convR.im());
+            // Right add overlap
+            Sum(outputR+processed, _fftBufferR.data()+processed, _overlapR.data()+processed, processing);
 
             processed += processing;
         }

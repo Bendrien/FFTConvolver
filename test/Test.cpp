@@ -158,114 +158,6 @@ static bool TestConvolver(size_t inputSize,
   }
 }
 
-static bool TestBinauralConvolver2(size_t inputSize,
-                                  size_t irSize,
-                                  size_t blockSizeMin,
-                                  size_t blockSizeMax,
-                                  size_t blockSizeConvolver,
-                                  bool refCheck)
-{
-    // Prepare input and IR
-    std::vector<fftconvolver::Sample> in(inputSize);
-    for (size_t i=0; i<inputSize; ++i)
-    {
-        in[i] = 0.1f * static_cast<fftconvolver::Sample>(i+1);
-    }
-
-    std::vector<fftconvolver::Sample> irL(irSize);
-    std::vector<fftconvolver::Sample> irR(irSize);
-    for (size_t i=0; i<irSize; ++i)
-    {
-        irL[i] = 0.1f * static_cast<fftconvolver::Sample>(i+1);
-        irR[i] = 0.1f * static_cast<fftconvolver::Sample>(i+1);
-    }
-
-    // Simple convolver
-    std::vector<fftconvolver::Sample> outSimpleL(in.size() + irL.size() - 1, fftconvolver::Sample(0.0));
-    std::vector<fftconvolver::Sample> outSimpleR(in.size() + irL.size() - 1, fftconvolver::Sample(0.0));
-    if (refCheck)
-    {
-        SimpleConvolve(&in[0], in.size(), &irL[0], irL.size(), &outSimpleL[0]);
-        SimpleConvolve(&in[0], in.size(), &irR[0], irR.size(), &outSimpleR[0]);
-    }
-
-    // FFT convolver
-    std::vector<fftconvolver::Sample> outL(in.size() + irL.size() - 1, fftconvolver::Sample(0.0));
-    std::vector<fftconvolver::Sample> outR(in.size() + irR.size() - 1, fftconvolver::Sample(0.0));
-    {
-        fftconvolver::BinauralFFTConvolver convolver;
-        convolver.init(blockSizeConvolver, &irL[0], &irR[0], irL.size());
-        std::vector<fftconvolver::Sample> inBuf(blockSizeMax);
-        size_t processedOut = 0;
-        size_t processedIn = 0;
-        while (processedOut < outL.size())
-        {
-            const size_t blockSize = blockSizeMin + (static_cast<size_t>(rand()) % (1+(blockSizeMax-blockSizeMin)));
-
-            const size_t remainingOut = outL.size() - processedOut;
-            const size_t remainingIn = in.size() - processedIn;
-
-            const size_t processingOut = std::min(remainingOut, blockSize);
-            const size_t processingIn = std::min(remainingIn, blockSize);
-
-            memset(&inBuf[0], 0, inBuf.size() * sizeof(fftconvolver::Sample));
-            if (processingIn > 0)
-            {
-                memcpy(&inBuf[0], &in[processedIn], processingIn * sizeof(fftconvolver::Sample));
-            }
-
-            convolver.process(&inBuf[0], &outL[processedOut], &outR[processedOut], processingOut);
-
-            processedOut += processingOut;
-            processedIn += processingIn;
-        }
-    }
-
-    if (refCheck)
-    {
-        size_t diffSamples = 0;
-        const double absTolerance = 0.001 * static_cast<double>(irL.size());
-        const double relTolerance = 0.0001 * ::log(static_cast<double>(irL.size()));
-        for (size_t i=0; i<outSimpleL.size(); ++i)
-        {
-            {
-                const double a = static_cast<double>(outL[i]);
-                const double b = static_cast<double>(outSimpleL[i]);
-                if (::fabs(a) > 1.0 && ::fabs(b) > 1.0)
-                {
-                    const double absError = ::fabs(a-b);
-                    const double relError = absError / b;
-                    if (relError > relTolerance && absError > absTolerance)
-                    {
-                        ++diffSamples;
-                    }
-                }
-            }
-
-            {
-                const double a = static_cast<double>(outR[i]);
-                const double b = static_cast<double>(outSimpleR[i]);
-                if (::fabs(a) > 1.0 && ::fabs(b) > 1.0)
-                {
-                    const double absError = ::fabs(a-b);
-                    const double relError = absError / b;
-                    if (relError > relTolerance && absError > absTolerance)
-                    {
-                        ++diffSamples;
-                    }
-                }
-            }
-        }
-        printf("Correctness Test (input %d, IR %d, blocksize %d-%d) => %s\n", static_cast<int>(inputSize), static_cast<int>(irSize), static_cast<int>(blockSizeMin), static_cast<int>(blockSizeMax), (diffSamples == 0) ? "[OK]" : "[FAILED]");
-        return (diffSamples == 0);
-    }
-    else
-    {
-        printf("Performance Test (input %d, IR %d, blocksize %d-%d) => Completed\n", static_cast<int>(inputSize), static_cast<int>(irSize), static_cast<int>(blockSizeMin), static_cast<int>(blockSizeMax));
-        return true;
-    }
-}
-
 static bool TestBinauralConvolver(size_t inputSize,
                                    size_t irSize,
                                    size_t blockSizeMin,
@@ -300,6 +192,9 @@ static bool TestBinauralConvolver(size_t inputSize,
     // FFT convolver
     std::vector<fftconvolver::Sample> outL(in.size() + irL.size() - 1, fftconvolver::Sample(0.0));
     std::vector<fftconvolver::Sample> outR(in.size() + irR.size() - 1, fftconvolver::Sample(0.0));
+
+    std::vector<fftconvolver::Sample> ignoreOutL(in.size() + irL.size() - 1, fftconvolver::Sample(0.0));
+    std::vector<fftconvolver::Sample> ignoreOutR(in.size() + irR.size() - 1, fftconvolver::Sample(0.0));
     {
         fftconvolver::BinauralFFTConvolver convolver;
         convolver.init(blockSizeConvolver, &irL[0], &irR[0], irL.size());
@@ -322,7 +217,7 @@ static bool TestBinauralConvolver(size_t inputSize,
                 memcpy(&inBuf[0], &in[processedIn], processingIn * sizeof(fftconvolver::Sample));
             }
 
-            convolver.process(&inBuf[0], &outL[processedOut], &outR[processedOut], processingOut);
+            convolver.process(&inBuf[0], &ignoreOutL[processedOut], &ignoreOutR[processedOut], processingOut);
             convolver.process(&outL[processedOut], &outR[processedOut], processingOut);
 
             processedOut += processingOut;
@@ -365,12 +260,12 @@ static bool TestBinauralConvolver(size_t inputSize,
                 }
             }
         }
-        printf("Correctness Test (input %d, IR %d, blocksize %d-%d) => %s\n", static_cast<int>(inputSize), static_cast<int>(irSize), static_cast<int>(blockSizeMin), static_cast<int>(blockSizeMax), (diffSamples == 0) ? "[OK]" : "[FAILED]");
+        printf("Correctness Test (binaural, input %d, IR %d, blocksize %d-%d) => %s\n", static_cast<int>(inputSize), static_cast<int>(irSize), static_cast<int>(blockSizeMin), static_cast<int>(blockSizeMax), (diffSamples == 0) ? "[OK]" : "[FAILED]");
         return (diffSamples == 0);
     }
     else
     {
-        printf("Performance Test (input %d, IR %d, blocksize %d-%d) => Completed\n", static_cast<int>(inputSize), static_cast<int>(irSize), static_cast<int>(blockSizeMin), static_cast<int>(blockSizeMax));
+        printf("Performance Test (binaural, input %d, IR %d, blocksize %d-%d) => Completed\n", static_cast<int>(inputSize), static_cast<int>(irSize), static_cast<int>(blockSizeMin), static_cast<int>(blockSizeMax));
         return true;
     }
 }
@@ -468,13 +363,13 @@ static bool TestTwoStageConvolver(size_t inputSize,
 //#define TEST_PERFORMANCE
 
 //#define TEST_FFTCONVOLVER
-#define TEST_STEREOFFTCONVOLVER
+#define TEST_BINAURALFFTCONVOLVER
 //#define TEST_TWOSTAGEFFTCONVOLVER
 
 
 int main()
 {
-#if defined(TEST_CORRECTNESS) && defined(TEST_STEREOFFTCONVOLVER)
+#if defined(TEST_CORRECTNESS) && defined(TEST_BINAURALFFTCONVOLVER)
     TestBinauralConvolver(1, 1, 1, 1, 1, true);
     TestBinauralConvolver(2, 2, 2, 2, 2, true);
     TestBinauralConvolver(3, 3, 3, 3, 3, true);
